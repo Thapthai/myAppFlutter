@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app_flutter/components/navbarLayout.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'pages/auth/loginPage.dart';
 import 'pages/home/homePage.dart';
@@ -42,7 +43,7 @@ class MyApp extends StatelessWidget {
             );
           }
 
-          return snapshot.data == true ? HomePage() : const LoginPage();
+          return snapshot.data == true ? NavbarLayout() : const LoginPage();
         },
       ),
       routes: {
