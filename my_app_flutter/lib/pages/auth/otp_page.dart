@@ -3,50 +3,46 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class OTPPage extends StatefulWidget {
+  final String twofaToken;
+  final int userId;
+
+  const OTPPage({super.key, required this.twofaToken, required this.userId});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<OTPPage> createState() => _OTPPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+class _OTPPageState extends State<OTPPage> {
+  final otpController = TextEditingController();
   bool isLoading = false;
   String errorMessage = '';
 
-  Future<void> login() async {
+  Future<void> verifyOTP() async {
     setState(() {
       isLoading = true;
       errorMessage = '';
     });
 
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final twofaToken = args['twofa_token'];
+    int userId = args['user_id'];
+
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.100:3000/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': emailController.text,
-          'password': passwordController.text,
-        }),
+        Uri.parse('http://192.168.1.100:3000/auth/2fa/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          "Authorization": 'Bearer $twofaToken',
+        },
+        body: jsonEncode({'userId': userId, 'code': otpController.text}),
       );
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 201) {
-        if (data['status'] == '2FA_REQUIRED') {
-          Navigator.pushNamed(
-            context,
-            '/otp',
-            arguments: {
-              'twofa_token': data['twofa_token'],
-              'user_id': data['user_id'],
-            },
-          );
-          return;
-        }
-
+      if (response.statusCode == 201 &&
+          data['status'] == 'LOGIN_2FA_SUCCESSFUL') {
         final user = data['user'];
 
         final prefs = await SharedPreferences.getInstance();
@@ -59,12 +55,12 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pushReplacementNamed(context, '/main');
       } else {
         setState(() {
-          errorMessage = data['message'] ?? 'Login failed';
+          errorMessage = data['message'] ?? 'OTP verification failed';
         });
       }
     } catch (e) {
       setState(() {
-        errorMessage = 'Error connecting to server';
+        errorMessage = 'Connection error';
       });
     } finally {
       setState(() {
@@ -76,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
+      appBar: AppBar(title: const Text("Enter OTP")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -84,19 +80,17 @@ class _LoginPageState extends State<LoginPage> {
             if (errorMessage.isNotEmpty)
               Text(errorMessage, style: const TextStyle(color: Colors.red)),
             TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"),
+              controller: otpController,
+              decoration: const InputDecoration(labelText: "OTP Code"),
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 24),
             isLoading
                 ? const CircularProgressIndicator()
-                : ElevatedButton(onPressed: login, child: const Text("Login")),
+                : ElevatedButton(
+                    onPressed: verifyOTP,
+                    child: const Text("Verify"),
+                  ),
           ],
         ),
       ),

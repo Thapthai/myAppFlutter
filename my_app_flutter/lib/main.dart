@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:my_app_flutter/components/navbarLayout.dart';
+import 'package:my_app_flutter/layout.dart';
+import 'package:my_app_flutter/pages/auth/otp_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'pages/auth/loginPage.dart';
-import 'pages/home/homePage.dart';
-import 'package:my_app_flutter/pages/profile/profilePage.dart';
-import 'package:my_app_flutter/pages/reports/reportsPage.dart';
-import 'package:my_app_flutter/pages/setting/settingPage.dart';
-import 'package:my_app_flutter/pages/product/productPage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,16 +39,22 @@ class MyApp extends StatelessWidget {
             );
           }
 
-          return snapshot.data == true ? NavbarLayout() : const LoginPage();
+          return snapshot.data == true ? Layout() : const LoginPage();
         },
       ),
+
       routes: {
         '/login': (context) => const LoginPage(),
-        '/home': (context) => HomePage(),
-        '/profile': (context) => ProfilePage(),
-        '/products': (context) => ProductPage(),
-        '/reports': (context) => ReportsPage(),
-        '/settings': (context) => SettingsPage(),
+        '/otp': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return OTPPage(
+            twofaToken: args['twofa_token'],
+            userId: args['user_id'],
+          );
+        },
+        '/main': (context) => const Layout(), // ← ตรงนี้สำคัญ
       },
     );
   }
